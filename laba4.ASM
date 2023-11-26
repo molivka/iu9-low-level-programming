@@ -4,12 +4,12 @@ data segment
 dummy db 0Dh, 0Ah, '$'; перевод строки
 digit_num db 90 ;количество разрядов без учёта знака
 sign1 db 0; знак первого
-num1 db 12, 12 dup('0'); первое число
-mass1 db 22, 22 dup('0'); массив1 чисел
+num1 db 12, 12 dup(0); первое число
+mass1 db 22, 22 dup(0); массив1 чисел
 sign2 db 0; знак второго
-num2 db 12, 12 dup('0'); второе число
-mass2 db 22, 22 dup('0'); массив2 чисел
-result db 23, 22 dup('0'); ответ + знак
+num2 db 12, 12 dup(0); второе число
+mass2 db 22, 22 dup(0); массив2 чисел
+result db 23, 22 dup(0); ответ + знак
 data ends
 
 code segment
@@ -21,9 +21,8 @@ sum_unsign proc
     push bp;сохраняем адрес начала
     mov bp, sp
 
-    mov si, [bp+4];доступ ко второму массиву
-    mov di, [bp+6];доступ к первому массиву
-    ;mov dx, [bp+8];доступ к строке-результату
+    mov si, [bp+6];доступ ко второму массиву
+    mov di, [bp+8];доступ к первому массиву
     xor cx, cx
     mov cl, [si];кол-во цифр числа
     add si, 1; пропускаем ячейку с длинной
@@ -39,12 +38,29 @@ sum_unsign proc
         inc si
         inc di
     loop for
+
+    mov si, [bp+4];доступ к строке-результату
+    mov di, [bp+8];доступ к первому массиву
+    mov cl, [di]
+    inc si; пропуск ячейки с размером
+    inc di
+    for_to_int:
+        xor ax, ax
+        mov al, [di]
+        add al, '0'
+        mov [si], al
+        inc si
+        inc di
+    loop for_to_int
+    mov al, '$'
+    mov [di+1], al
+
     pop bx; убираем со стека текущий адрес proc
 	pop bx; сохраняем адрес возврата
 	pop bp; достаём первую строку
 	pop bp; достаём вторую строку
-	mov dx, offset mass1; strcat возвращает указатель на первую строку
-	add dx, 1; не учитываем длин
+	mov dx, offset result
+    inc dx
 	push dx ; кладём результат
 	push bx ; кладём адрес возврата
     ret
@@ -132,8 +148,8 @@ start:
 		push dx
 		mov dx, offset mass2
 		push dx
-		;mov dx, offset result
-		;push dx
+		mov dx, offset result
+		push dx
         call sum_unsign
         pop dx
         mov ah, 09h
