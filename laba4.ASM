@@ -53,7 +53,7 @@ sum_unsign proc
         inc di
     loop for_to_int
     mov al, '$'
-    mov [di+1], al
+    mov [si+1], al
 
     pop bx; убираем со стека текущий адрес proc
 	pop bx; сохраняем адрес возврата
