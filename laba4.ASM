@@ -11,7 +11,7 @@ num2 db 12, 12 dup(0); второе число
 mass2 db 22, 22 dup(0); массив2 чисел
 result db 22, 22 dup(0); ответ
 massres db 22, 22 dup(0); массив ответа
-error db 0; флаг ошибки
+error db 1; флаг ошибки
 data ends
 
 code segment
@@ -44,15 +44,16 @@ to_int proc; в start пушим знак, массив, строку
 	    mov dl, [si]; последняя цифра строки
 	    sub dl, '0'; приводим к числовому виду
 	    cmp dl, 0
-	    jb end_prog; если меньше нуля, то не цифра
+	    jb end_m; если меньше нуля, то не цифра
 	    cmp dl, 9
-	    ja end_prog; если больше 9, то не цифра
+	    ja end_m; если больше 9, то не цифра
 	    mov [di], dl; записываем число в массив
 	    add byte ptr [di], '0'; проверка
 	    inc di
 	    dec si
 	loop m
-;todo: дописать обработку ошибок
+    mov error, 0
+    end_m:
     ret
 to_int endp
 
@@ -92,7 +93,7 @@ comp proc
     ret
 comp endp
 
-sub_unsign proc
+sum_unsign proc
     push bp;сохраняем адрес начала
     mov bp, sp
 
@@ -127,8 +128,6 @@ sub_unsign proc
         inc si
         inc di
     loop for_to_int
-    mov al, '$'
-    mov [si+1], al
 
     pop bx; убираем со стека текущий адрес proc
 	pop bx; сохраняем адрес возврата
@@ -139,7 +138,7 @@ sub_unsign proc
 	push dx ; кладём результат
 	push bx ; кладём адрес возврата
     ret
-sub_unsign endp
+sum_unsign endp
 
 start:
         mov ax, data
