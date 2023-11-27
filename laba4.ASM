@@ -2,14 +2,14 @@ assume cs: code, ds: data
 
 data segment
 dummy db 0Dh, 0Ah, '$'; перевод строки
-digit_num db 90 ;количество разрядов без учёта знака
+digit_num db 11 ;количество разрядов без учёта знака
 sign1 db 0; знак первого
 num1 db 12, 12 dup(0); первое число
 mass1 db 22, 22 dup(0); массив1 чисел
 sign2 db 0; знак второго
 num2 db 12, 12 dup(0); второе число
 mass2 db 22, 22 dup(0); массив2 чисел
-result db 23, 22 dup(0); ответ + знак
+result db 22, 22 dup(0); ответ
 data ends
 
 code segment
@@ -17,7 +17,43 @@ code segment
  ;   ret
 ;reverse endp
 
-sum_unsign proc
+comp proc
+    push bp
+    mov bp, sp
+
+    mov si, [bp+6]; 1 число
+    mov di, [bp+4]; 2 число
+
+    mov dx, 1; флаг, что первое число меньше
+    xor cx, cx
+    mov cl, [si]; длина массива
+    add si, cx; идём с конца, тк число ревёрснуто
+    add di, cx
+    len_for:
+        xor ax, ax
+        xor bx, bx
+        mov al, [si]; 1 число
+        mov bl, [di]; 2 число
+        dec si
+        dec di
+        cmp ax, bx
+        jl endd; если 1 < 2
+        cmp ax, bx
+        jg end_loop; сесли 1 > 2
+    loop len_for
+    end_loop:
+    mov dx, 0
+    endd:
+    pop bx; убираем со стека текущий адрес proc
+	pop bx; сохраняем адрес возврата
+	pop bp; достаём первую строку
+	pop bp; достаём вторую строку
+	push dx ; кладём результат
+	push bx ; кладём адрес возврата
+    ret
+comp endp
+
+sub_unsign proc
     push bp;сохраняем адрес начала
     mov bp, sp
 
@@ -64,8 +100,7 @@ sum_unsign proc
 	push dx ; кладём результат
 	push bx ; кладём адрес возврата
     ret
-sum_unsign endp
-
+sub_unsign endp
 
 start:
         mov ax, data
@@ -143,15 +178,28 @@ start:
         mov ah, 09h
         int 21h
 
-		;пушаем в стек, чтобы произвести операции
+		;пушаем в стек, чтобы произвести операцию сумма без знака
 		mov dx, offset mass1
 		push dx
 		mov dx, offset mass2
 		push dx
 		mov dx, offset result
 		push dx
-        call sum_unsign
+        call sub_unsign
         pop dx
+        mov ah, 09h
+        int 21h
+
+        ;пушаем в стек, чтобы произвести операцию сравнения без знака
+        mov dx, offset mass1
+		push dx
+		mov dx, offset mass2
+		push dx
+        call comp
+        pop dx
+        cmp dx, 1
+        jne end_prog; если не первой число меньше
+        mov dx, offset mass1
         mov ah, 09h
         int 21h
 
