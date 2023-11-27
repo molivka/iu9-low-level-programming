@@ -9,9 +9,10 @@ mass1 db 22, 22 dup(0); массив1 чисел
 sign2 db 0; знак второго
 num2 db 12, 12 dup(0); второе число
 mass2 db 22, 22 dup(0); массив2 чисел
-result db 22, 22 dup(0); ответ
+result db 23, 22 dup(0); ответ
 massres db 22, 22 dup(0); массив ответа
 error db 1; флаг ошибки
+men db 1
 data ends
 
 code segment
@@ -54,6 +55,12 @@ to_int proc; в start пушим знак, массив, строку
 	loop m
     mov error, 0
     end_m:
+    pop bx; убираем со стека текущий адрес proc
+	pop bx; сохраняем адрес возврата
+	pop bp; достаём строку
+	pop bp; достаём массив
+	pop bp; достаём знак
+	push bx ; кладём адрес возврата
     ret
 to_int endp
 
@@ -61,10 +68,9 @@ comp proc
     push bp
     mov bp, sp
 
-    mov si, [bp+6]; 1 число
-    mov di, [bp+4]; 2 число
+    mov si, offset mass1; 1 число
+    mov di, offset mass2; 2 число
 
-    mov dx, 1; флаг, что первое число меньше
     xor cx, cx
     mov cl, [si]; длина массива
     add si, cx; идём с конца, тк число ревёрснуто
@@ -82,23 +88,14 @@ comp proc
         jg end_loop; сесли 1 > 2
     loop len_for
     end_loop:
-    mov dx, 0
+    mov men, 0
     endd:
-    pop bx; убираем со стека текущий адрес proc
-	pop bx; сохраняем адрес возврата
-	pop bp; достаём строку
-	pop bp; достаём массив
-	pop bp; достаём знак
-	push bx ; кладём адрес возврата
     ret
 comp endp
 
 sum_unsign proc
-    push bp;сохраняем адрес начала
-    mov bp, sp
-
-    mov si, [bp+6];доступ ко второму массиву
-    mov di, [bp+8];доступ к первому массиву
+    mov si, offset mass2;доступ ко второму массиву
+    mov di, offset massres;доступ к массиву результата
     xor cx, cx
     mov cl, [si];кол-во цифр числа
     add si, 1; пропускаем ячейку с длинной
@@ -115,28 +112,23 @@ sum_unsign proc
         inc di
     loop for
 
-    mov si, [bp+4];доступ к строке-результату
-    mov di, [bp+8];доступ к первому массиву
-    mov cl, [di]
-    inc si; пропуск ячейки с размером
-    inc di
-    for_to_int:
+    mov si, offset mass1
+    mov di, offset massres;доступ к массиву результата
+    xor cx, cx
+    mov cl, [si];кол-во цифр числа
+    add si, 1; пропускаем ячейку с длинной
+    add di, 1
+    for2:
         xor ax, ax
-        mov al, [di]
-        add al, '0'
-        mov [si], al
+        mov al, [si]
+        add al, [di]
+        mov bl, 10
+        div bl
+        mov [di], ah
+        add [di+1], al
         inc si
         inc di
-    loop for_to_int
-
-    pop bx; убираем со стека текущий адрес proc
-	pop bx; сохраняем адрес возврата
-	pop bp; достаём первую строку
-	pop bp; достаём вторую строку
-	mov dx, offset result
-    inc dx
-	push dx ; кладём результат
-	push bx ; кладём адрес возврата
+    loop for2
     ret
 sum_unsign endp
 
@@ -179,28 +171,12 @@ start:
         mov ah, 09h
         int 21h
 
-		;пушаем в стек, чтобы произвести операцию сумма без знака
-		mov dx, offset mass1
-		push dx
-		mov dx, offset mass2
-		push dx
-		mov dx, offset result
-		push dx
+		;сумма без знака
         call sum_unsign
-        pop dx
-        mov ah, 09h
-        int 21h
 
-        ;пушаем в стек, чтобы произвести операцию сравнения без знака
-        mov dx, offset mass1
-		push dx
-		mov dx, offset mass2
-		push dx
-        call comp
-        pop dx
-        cmp dx, 1
-        jne end_prog; если не первой число меньше
-        mov dx, offset mass1
+        ;кто больше
+        ;call comp
+
         mov ah, 09h
         int 21h
 
