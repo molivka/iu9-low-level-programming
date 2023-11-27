@@ -186,7 +186,7 @@ start:
 		push dx
 		mov dx, offset result
 		push dx
-        call sub_unsign
+        call sum_unsign
         pop dx
         mov ah, 09h
         int 21h
