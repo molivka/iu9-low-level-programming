@@ -10,12 +10,51 @@ sign2 db 0; знак второго
 num2 db 12, 12 dup(0); второе число
 mass2 db 22, 22 dup(0); массив2 чисел
 result db 22, 22 dup(0); ответ
+massres db 22, 22 dup(0); массив ответа
+error db 0; флаг ошибки
 data ends
 
 code segment
 ;reverse proc
  ;   ret
 ;reverse endp
+to_int proc; в start пушим знак, массив, строку
+    push bp
+    mov bp, sp
+
+    mov si, [bp+4]; строка
+    mov di, [bp+6]; массив
+
+    inc si; не учитываем максимальную длину строки
+    xor cx, cx
+    mov cl, [si];длина строки
+    inc si;не учитываем фактическую длину строки
+    cmp byte ptr [si], '-'; проверка на отрицательность
+    jne pos
+    dec cl; вычитаем 1, тк не учитываем знак
+    mov si, [bp+8]; получаем доступ к переменной знак
+    mov si, 1; устанавливаем флаг знака
+    pos:
+    inc di; пропускаем ячейку с длиной массива
+    mov si, [bp+4]; обращение к строке
+    inc si; пропуск длины
+    add si, cx; чтобы идти с конца
+	m:
+	    xor dx, dx; чтобы не взять значения в dh
+	    mov dl, [si]; последняя цифра строки
+	    sub dl, '0'; приводим к числовому виду
+	    cmp dl, 0
+	    jb end_prog; если меньше нуля, то не цифра
+	    cmp dl, 9
+	    ja end_prog; если больше 9, то не цифра
+	    mov [di], dl; записываем число в массив
+	    add byte ptr [di], '0'; проверка
+	    inc di
+	    dec si
+	loop m
+;todo: дописать обработку ошибок
+    ret
+to_int endp
 
 comp proc
     push bp
@@ -46,9 +85,9 @@ comp proc
     endd:
     pop bx; убираем со стека текущий адрес proc
 	pop bx; сохраняем адрес возврата
-	pop bp; достаём первую строку
-	pop bp; достаём вторую строку
-	push dx ; кладём результат
+	pop bp; достаём строку
+	pop bp; достаём массив
+	pop bp; достаём знак
 	push bx ; кладём адрес возврата
     ret
 comp endp
@@ -111,32 +150,14 @@ start:
 		mov ah, 0Ah
 		int 21h
 
-        ;перевод символов 1 строки в числа
-        mov si, 1; не учитываем максимальную длину
-        xor cx, cx
-        mov cl, num1[si];длина строки
-        mov di, cx; для заполнения массива чисел символами строки в обратном порядке
-        add di, 1
-        add si, 1;не учитываем фактическую длину строки
-        cmp num1[si], '-'; проверка на отрицательность
-        jne pos1
-        sub cl, 1; вычетаем 1, тк не учитываем знак
-        mov sign1, 1; устанавливаем флаг знака
-        pos1:
-        mov si, 1; тк это индекс в массиве + 1 с учётом ячейки на длину
-		m1:
-		    xor dx, dx; чтобы не взять значения в dh
-		    mov dl, num1[di]; последняя цифра строки
-		    sub dl, '0'; приводим к числовому виду
-		    cmp dl, 0
-		    jb end_prog; если меньше нуля, то не цифра
-		    cmp dl, 9
-		    ja end_prog; если больше 9, то не цифра
-		    mov mass1[si], dl; записываем число в массив в обратном порядке
-		    ;add mass1[si], '0'
-		    inc si
-		    dec di
-		loop m1
+		;перевод первой строки в массив
+        mov dx, offset sign1
+		push dx
+		mov dx, offset mass1
+		push dx
+		mov dx, offset num1
+		push dx
+        call to_int
 
         mov dx, offset dummy ; добавление перевод строки
         mov ah, 09h
@@ -147,32 +168,13 @@ start:
         mov ah, 0Ah
         int 21h
 
-        ;перевод символов 2 строки в числа
-        mov si, 1; не учитываем максимальную длину
-        xor cx, cx
-        mov cl, num2[si];длина строки
-        mov di, cx; для заполнения массива чисел символами строки в обратном порядке
-        add di, 1
-        add si, 1;не учитываем фактическую длину строки
-        cmp num2[si], '-'; проверка на отрицательность
-        jne pos2
-        sub cl, 1; вычетаем 1, тк не учитываем знак
-        mov sign2, 1; устанавливаем флаг знака
-        pos2:
-        mov si, 1; тк это индекс в массиве + 1 с учётом ячейки на длину
-		m2:
-		    xor dx, dx; чтобы не взять значения в dh
-		    mov dl, num2[di]; последняя цифра строки
-		    sub dl, '0'; приводим к числовому виду
-		    cmp dl, 0
-		    jb end_prog; если меньше нуля, то не цифра
-		    cmp dl, 9
-		    ja end_prog; если больше 9, то не цифра
-		    mov mass2[si], dl; записываем число в массив в обратном порядке
-		    ;add mass2[si], '0'
-		    inc si
-		    dec di
-		loop m2
+        mov dx, offset sign2
+		push dx
+		mov dx, offset mass2
+		push dx
+		mov dx, offset num2
+		push dx
+        call to_int
 
         mov dx, offset dummy ; добавление перевод строки
         mov ah, 09h
