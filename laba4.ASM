@@ -12,7 +12,7 @@ mass2 db 22, 22 dup(0); массив2 чисел
 result db 23, 22 dup(0); ответ
 massres db 22, 22 dup(0); массив ответа
 error db 1; флаг ошибки
-men db 1
+men db 1; флаг первое число меньше второго
 data ends
 
 code segment
@@ -49,7 +49,7 @@ to_int proc; в start пушим знак, массив, строку
 	    cmp dl, 9
 	    ja end_m; если больше 9, то не цифра
 	    mov [di], dl; записываем число в массив
-	    add byte ptr [di], '0'; проверка
+	    ;add byte ptr [di], '0'; проверка
 	    inc di
 	    dec si
 	loop m
@@ -65,9 +65,6 @@ to_int proc; в start пушим знак, массив, строку
 to_int endp
 
 comp proc
-    push bp
-    mov bp, sp
-
     mov si, offset mass1; 1 число
     mov di, offset mass2; 2 число
 
@@ -132,6 +129,48 @@ sum_unsign proc
     ret
 sum_unsign endp
 
+sub_unsign proc;из di вычитаем si
+    mov di, offset massres
+    mov si, offset mass2; 2 - максимальное число
+    mov ax, offset mass1
+    cmp men, 1
+    je op1; если первое число меньше второго
+    mov si, offset mass1; 1 - максимальное число
+    mov ax, offset mass2
+    op1:
+    xor cx, cx
+    mov cl, [si];кол-во цифр числа
+    inc si; пропускаем ячейку с длинной
+    inc di
+    for_sub:
+        xor ax, ax
+        mov al, [si]
+        mov [di], al
+        inc si
+        inc di
+    loop for_sub
+
+    mov di, offset massres
+    mov si, ax
+    xor cx, cx
+    mov cl, [si];кол-во цифр числа
+    inc di
+    inc si
+    for_sub2:
+        xor ax, ax
+        mov al, [di]
+        add al, 10
+        dec byte ptr [di+1]
+        mov bl, 10
+        div bl
+        mov [di], ah
+        add [di+1], al
+        inc si
+        inc di
+    loop for_sub2
+    ret
+sub_unsign endp
+
 start:
         mov ax, data
 		mov ds, ax
@@ -171,8 +210,10 @@ start:
         mov ah, 09h
         int 21h
 
+        ;call comp
+        call sub_unsign
 		;сумма без знака
-        call sum_unsign
+        ;call sum_unsign
 
         ;кто больше
         ;call comp
