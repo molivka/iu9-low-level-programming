@@ -132,11 +132,11 @@ sum_unsign endp
 sub_unsign proc;из di вычитаем si
     mov di, offset massres
     mov si, offset mass2; 2 - максимальное число
-    mov ax, offset mass1
+    mov bx, offset mass1
     cmp men, 1
     je op1; если первое число меньше второго
     mov si, offset mass1; 1 - максимальное число
-    mov ax, offset mass2
+    mov bx, offset mass2
     op1:
     xor cx, cx
     mov cl, [si];кол-во цифр числа
@@ -151,16 +151,17 @@ sub_unsign proc;из di вычитаем si
     loop for_sub
 
     mov di, offset massres
-    mov si, ax
+    mov si, bx
     xor cx, cx
     mov cl, [si];кол-во цифр числа
     inc di
     inc si
     for_sub2:
         xor ax, ax
-        mov al, [di]
-        add al, 10
-        dec byte ptr [di+1]
+        mov al, [di]; текущая цифра
+        add al, 10; увеличиваем на разряд на всякий случай
+        dec byte ptr [di+1]; убираем след разряд
+        sub al, [si]
         mov bl, 10
         div bl
         mov [di], ah
@@ -210,7 +211,7 @@ start:
         mov ah, 09h
         int 21h
 
-        ;call comp
+        call comp
         call sub_unsign
 		;сумма без знака
         ;call sum_unsign
