@@ -16,8 +16,8 @@ error db 1; флаг ошибки
 men db 1; флаг первое число меньше второго
 ravn db 0; флаг что равны
 flagnul db 0; флаг что 0 значащий
-hex db 'Choose system 1->16 0->10 $'
-operation db 50, "Операция: + - *$"
+hex db 'Choose system 1->16 0->10$'
+operation db 'Choose operation: + - *$'
 pep_ans db 5, 2 dup('0')
 data ends
 
@@ -264,6 +264,7 @@ mul_unsign endp
 start:
         mov ax, data
         mov ds, ax
+
         ;вопрос про 16 сс
         mov dx, offset hex
         mov ah, 09h
@@ -273,18 +274,36 @@ start:
         mov ah, 09h
         int 21h
 
-        ;ввод ответа
         mov dx, offset pep_ans;ввод ответа
         xor ax, ax
         mov ah, 0Ah
         int 21h
 
-        mov dx, offset dummy ; добавление перевод строки
+        mov dx, offset dummy; добавление перевод строки
         mov ah, 09h
         int 21h
 
         cmp pep_ans, '0'
         jne six
+
+        six:;тут будет реализация суммы
+
+        mov dx, offset operation; вопрос про операцию
+        mov ah, 09h
+        int 21h
+
+        mov dx, offset dummy; добавление перевод строки
+        mov ah, 09h
+        int 21h
+
+        mov dx, offset pep_ans;ввод ответа
+        xor ax, ax
+        mov ah, 0Ah
+        int 21h
+
+        mov dx, offset dummy; добавление перевод строки
+        mov ah, 09h
+        int 21h
 
         mov dx, offset num1; чтение 1 строки
         xor ax, ax
@@ -321,15 +340,29 @@ start:
         pop ax
         mov sign2, al
 
-        mov dx, offset dummy ; добавление перевод строки
+        mov dx, offset dummy; добавление перевод строки
         mov ah, 09h
         int 21h
 
         call comp; заранее сравниваем
 
+        mov di, offset pep_ans
+        add di, 2
+
+        cmp byte ptr[di], '+'
+        je plus
+
+        cmp byte ptr[di], '-'
+        je minus
+
+        cmp byte ptr[di], '*'
+        je umnog
+
+        minus:
         call sub_unsign
         jmp end_prog
 
+        umnog:
         call mul_unsign
         mov al, sign1
         mov bl, sign2
@@ -338,6 +371,7 @@ start:
         mov signres, 1
         jmp end_prog
 
+        plus:
         xor ax, ax
         mov al, sign1
         add al, sign2
@@ -379,16 +413,6 @@ start:
         add si, 2
         mov byte ptr [si], '$'
         jmp print_ans
-
-        ;call mul_unsign
-        ;call comp
-        ;call sub_unsign
-		;сумма без знака
-        ;call sum_unsign
-
-        ;кто больше
-        ;call comp
-
 
 
 end_prog:
