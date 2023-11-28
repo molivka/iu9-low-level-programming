@@ -14,6 +14,7 @@ massres db 22, 22 dup(0); массив ответа
 signres db 0; 1 если минус
 error db 1; флаг ошибки
 men db 1; флаг первое число меньше второго
+ravn db 0; флаг что равны
 flagnul db 0; флаг что 0 значащий
 data ends
 
@@ -65,8 +66,7 @@ to_int proc; в start пушим знак, массив, строку
     mov bx, 0
     cmp byte ptr [si], '-'; проверка на отрицательность
     jne pos
-    mov di, [bp+8]
-    mov di, 1
+    mov ax, 1
     mov bx, 1
     pos:
     dec si
@@ -94,6 +94,7 @@ to_int proc; в start пушим знак, массив, строку
 	pop bp; достаём строку
 	pop bp; достаём массив
 	pop bp; достаём знак
+	push ax; клад>м знак
 	push bx ; кладём адрес возврата
     ret
 to_int endp
@@ -118,6 +119,7 @@ comp proc
         cmp ax, bx
         jg end_loop; сесли 1 > 2
     loop len_for
+    mov ravn, 1
     end_loop:
     mov men, 0
     endd:
@@ -273,6 +275,8 @@ start:
 		mov dx, offset num1
 		push dx
         call to_int
+        pop ax
+        mov sign1, al
 
         mov dx, offset dummy ; добавление перевод строки
         mov ah, 09h
@@ -290,6 +294,8 @@ start:
 		mov dx, offset num2
 		push dx
         call to_int
+        pop ax
+        mov sign2, al
 
         mov dx, offset dummy ; добавление перевод строки
         mov ah, 09h
@@ -304,6 +310,8 @@ start:
         je sum_pos
         cmp ax, 2; оба отрицательные
         je otr_sum
+        cmp ravn, 1
+        je nul
         cmp sign1, 0
         je f_pos; первое положительно
         cmp men, 1
@@ -331,6 +339,12 @@ start:
         call sum_unsign
         jmp end_prog
 
+        nul:
+        mov si, offset result
+        add si, 2
+        mov byte ptr [si], '$'
+        jmp print_ans
+
         ;call mul_unsign
         ;call comp
         ;call sub_unsign
@@ -346,6 +360,7 @@ start:
 
 end_prog:
         call to_string
+print_ans:
         mov dx, offset result
         inc dx
         mov ah, 09h
