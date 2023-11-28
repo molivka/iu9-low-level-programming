@@ -9,17 +9,48 @@ mass1 db 22, 22 dup(0); массив1 чисел
 sign2 db 0; знак второго
 num2 db 12, 12 dup(0); второе число
 mass2 db 22, 22 dup(0); массив2 чисел
-result db 24, 24 dup(0); ответ: знак + число + $
+result db 24, 24 dup('0'); ответ: знак + число + $
 massres db 22, 22 dup(0); массив ответа
 signres db 0; 1 если минус
 error db 1; флаг ошибки
 men db 1; флаг первое число меньше второго
+flagnul db 0; флаг что 0 значащий
 data ends
 
 code segment
-;reverse proc
- ;   ret
-;reverse endp
+
+to_string proc
+    mov si, offset result
+    inc si
+    mov di, offset massres
+    cmp signres, 0
+    je positive; i tried to be positive...
+    mov byte ptr [si], '-'
+    inc si
+    positive:
+    mov cx, 22
+    add di, cx; идём с конца массива тк цифры в обратном порядке
+    for_ch:
+        cmp byte ptr [di], 0
+        je flag
+        jmp normnum
+        flag:
+        cmp flagnul, 0; если 0 не значащий
+        je skip
+        normnum:
+        mov flagnul, 1
+        xor ax, ax
+        mov al, [di]
+        mov [si], al
+        add byte ptr [si], '0'
+        inc si
+        skip:
+        dec di
+    loop for_ch
+    mov byte ptr [si], '$'
+ret
+to_string endp
+
 to_int proc; в start пушим знак, массив, строку
     push bp
     mov bp, sp
@@ -291,7 +322,7 @@ start:
         ;сложение 2 отрицательных
         otr_sum:
         mov signres, 1
-        call sub_unsign
+        call sum_unsign
         jmp end_prog
 
         sum_pos:;положительная сумма
@@ -312,6 +343,11 @@ start:
 
 
 end_prog:
+        call to_string
+        mov dx, offset result
+        inc dx
+        mov ah, 09h
+        int 21h
 		mov ah, 4ch
 		int 21h
 code ends
