@@ -16,6 +16,9 @@ error db 1; флаг ошибки
 men db 1; флаг первое число меньше второго
 ravn db 0; флаг что равны
 flagnul db 0; флаг что 0 значащий
+hex db 'Choose system 1->16 0->10 $'
+operation db 50, "Операция: + - *$"
+pep_ans db 5, 2 dup('0')
 data ends
 
 code segment
@@ -260,20 +263,41 @@ mul_unsign endp
 
 start:
         mov ax, data
-		mov ds, ax
+        mov ds, ax
+        ;вопрос про 16 сс
+        mov dx, offset hex
+        mov ah, 09h
+        int 21h
 
-		mov dx, offset num1; чтение 1 строки
-		xor ax, ax
-		mov ah, 0Ah
-		int 21h
+        mov dx, offset dummy ; добавление перевод строки
+        mov ah, 09h
+        int 21h
 
-		;перевод первой строки в массив
+        ;ввод ответа
+        mov dx, offset pep_ans;ввод ответа
+        xor ax, ax
+        mov ah, 0Ah
+        int 21h
+
+        mov dx, offset dummy ; добавление перевод строки
+        mov ah, 09h
+        int 21h
+
+        cmp pep_ans, '0'
+        jne six
+
+        mov dx, offset num1; чтение 1 строки
+        xor ax, ax
+        mov ah, 0Ah
+        int 21h
+
+        ;перевод первой строки в массив
         mov dx, offset sign1
-		push dx
-		mov dx, offset mass1
-		push dx
-		mov dx, offset num1
-		push dx
+        push dx
+        mov dx, offset mass1
+        push dx
+        mov dx, offset num1
+        push dx
         call to_int
         pop ax
         mov sign1, al
@@ -288,11 +312,11 @@ start:
         int 21h
 
         mov dx, offset sign2
-		push dx
-		mov dx, offset mass2
-		push dx
-		mov dx, offset num2
-		push dx
+	    push dx
+	    mov dx, offset mass2
+	    push dx
+	    mov dx, offset num2
+	    push dx
         call to_int
         pop ax
         mov sign2, al
@@ -302,6 +326,17 @@ start:
         int 21h
 
         call comp; заранее сравниваем
+
+        call sub_unsign
+        jmp end_prog
+
+        call mul_unsign
+        mov al, sign1
+        mov bl, sign2
+        cmp al, bl
+        je end_prog
+        mov signres, 1
+        jmp end_prog
 
         xor ax, ax
         mov al, sign1
@@ -354,8 +389,6 @@ start:
         ;кто больше
         ;call comp
 
-        mov ah, 09h
-        int 21h
 
 
 end_prog:
