@@ -262,7 +262,7 @@ start:
         mov ah, 09h
         int 21h
 
-        call comp
+        call comp; заранее сравниваем
 
         xor ax, ax
         mov al, sign1
