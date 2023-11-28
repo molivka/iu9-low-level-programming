@@ -9,7 +9,7 @@ mass1 db 22, 22 dup(0); массив1 чисел
 sign2 db 0; знак второго
 num2 db 12, 12 dup(0); второе число
 mass2 db 22, 22 dup(0); массив2 чисел
-result db 23, 22 dup(0); ответ
+result db 24, 24 dup(0); ответ: знак + число + $
 massres db 22, 22 dup(0); массив ответа
 error db 1; флаг ошибки
 men db 1; флаг первое число меньше второго
@@ -172,6 +172,56 @@ sub_unsign proc;из di вычитаем si
     ret
 sub_unsign endp
 
+mul_unsign proc
+    mov si, offset mass1
+    inc si
+    mov cx, 0; число повторений цикла
+    for1_start: ; метка, на которую проецируется цикл
+        cmp cx, 11; кол-во итераций
+        jnl for1_end; больше или равен -> выход
+        mov bx, 0; счётчик второго цикла
+        mov di, offset mass2
+        inc di
+        for2_start:
+            cmp bx, 11
+            jnl for2_end
+
+            xor ax, ax
+            mov al, [di]; умножение разрядов
+            mul byte ptr [si]
+
+            mov dx, si; сохраняем si тк нужно обратиться к массиву massres
+            mov si, offset massres
+            inc si
+            add si, cx; ind в massres = cx+bx
+            add si, bx
+            add [si], ax;кладём ответ
+
+            mov si, dx
+
+            inc di
+            inc bx
+            jmp for2_start
+        for2_end:
+        inc si
+        inc cx
+        jmp for1_start
+    for1_end:
+    mov di, offset massres; редактируем результат, тк могли быть переполнения
+    inc di
+    mov cx, 21
+    for_norm:
+        xor ax, ax
+        mov al, [di]
+        mov bl, 10
+        div bl
+        mov [di], ah
+        add [di+1], al
+        inc di
+    loop for_norm
+    ret
+mul_unsign endp
+
 start:
         mov ax, data
 		mov ds, ax
@@ -211,8 +261,9 @@ start:
         mov ah, 09h
         int 21h
 
-        call comp
-        call sub_unsign
+        call mul_unsign
+        ;call comp
+        ;call sub_unsign
 		;сумма без знака
         ;call sum_unsign
 
