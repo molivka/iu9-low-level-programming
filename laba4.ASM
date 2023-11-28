@@ -11,6 +11,7 @@ num2 db 12, 12 dup(0); второе число
 mass2 db 22, 22 dup(0); массив2 чисел
 result db 24, 24 dup(0); ответ: знак + число + $
 massres db 22, 22 dup(0); массив ответа
+signres db 0; 1 если минус
 error db 1; флаг ошибки
 men db 1; флаг первое число меньше второго
 data ends
@@ -261,7 +262,43 @@ start:
         mov ah, 09h
         int 21h
 
-        call mul_unsign
+        call comp
+
+        xor ax, ax
+        mov al, sign1
+        add al, sign2
+        cmp ax, 0; оба положительные
+        je sum_pos
+        cmp ax, 2; оба отрицательные
+        je otr_sum
+        cmp sign1, 0
+        je f_pos; первое положительно
+        cmp men, 1
+        je s_res_pos; второе положительно и по модулю больше
+        mov signres, 1
+        s_res_pos:
+        call sub_unsign
+        jmp end_prog
+
+        f_pos:;первое положительно
+        cmp men, 0
+        je f_res_pos
+        mov signres, 1
+        f_res_pos:
+        call sub_unsign
+        jmp end_prog
+
+        ;сложение 2 отрицательных
+        otr_sum:
+        mov signres, 1
+        call sub_unsign
+        jmp end_prog
+
+        sum_pos:;положительная сумма
+        call sum_unsign
+        jmp end_prog
+
+        ;call mul_unsign
         ;call comp
         ;call sub_unsign
 		;сумма без знака
