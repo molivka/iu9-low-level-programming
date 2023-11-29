@@ -1,6 +1,9 @@
 assume cs: code, ds: data
 
 data segment
+hex db 'Choose system 1->16 0->10$'
+operation db 'Choose operation: + - *$'
+errror db 'Invalid character$'
 dummy db 0Dh, 0Ah, '$'; перевод строки
 digit_num db 11 ;количество разрядов без учёта знака
 sign1 db 0; знак первого
@@ -16,9 +19,8 @@ error db 1; флаг ошибки
 men db 1; флаг первое число меньше второго
 ravn db 0; флаг что равны
 flagnul db 0; флаг что 0 значащий
-hex db 'Choose system 1->16 0->10$'
-operation db 'Choose operation: + - *$'
-pep_ans db 5, 2 dup('0')
+base db 10
+pep_ans db 5, '0'
 data ends
 
 code segment
@@ -46,6 +48,10 @@ to_string proc
         xor ax, ax
         mov al, [di]
         mov [si], al
+        cmp byte ptr [si], 10
+        jb ok
+        add byte ptr [si], 27h
+        ok:
         add byte ptr [si], '0'
         inc si
         skip:
@@ -76,17 +82,30 @@ to_int proc; в start пушим знак, массив, строку
     mov di, offset [bp+6]
     inc di; пропускаем ячейку с длиной массива
     add si, cx; чтобы идти с конца
-    add cx, bx
+    sub cx, bx;;a не sub?
 	m:
 	    xor dx, dx; чтобы не взять значения в dh
 	    mov dl, [si]; последняя цифра строки
 	    sub dl, '0'; приводим к числовому виду
 	    cmp dl, 0
 	    jb end_m; если меньше нуля, то не цифра
+	    xor bx, bx
+	    cmp dl, 10
+	    jb ne_six; если меньше 10, то не переводим в 16 сс
+	    mov bl, base
+	    cmp bl, 16
+	    jne ne_six
+	    sub dl, 27h
+	    cmp dl, 10
+	    jb end_m; если < 10, то не цифра
+	    cmp dl, 15
+	    ja end_m; если больше 15, то не цифра
+	    jmp sixt
+	    ne_six:
 	    cmp dl, 9
 	    ja end_m; если больше 9, то не цифра
+	    sixt:
 	    mov [di], dl; записываем число в массив
-	    ;add byte ptr [di], '0'; проверка
 	    inc di
 	    dec si
 	loop m
@@ -97,7 +116,7 @@ to_int proc; в start пушим знак, массив, строку
 	pop bp; достаём строку
 	pop bp; достаём массив
 	pop bp; достаём знак
-	push ax; клад>м знак
+	push ax; кладём знак
 	push bx ; кладём адрес возврата
     ret
 to_int endp
@@ -140,7 +159,7 @@ sum_unsign proc
         xor ax, ax
         mov al, [si]
         add al, [di]
-        mov bl, 10
+        mov bl, base
         div bl
         mov [di], ah
         add [di+1], al
@@ -158,7 +177,7 @@ sum_unsign proc
         xor ax, ax
         mov al, [si]
         add al, [di]
-        mov bl, 10
+        mov bl, base
         div bl
         mov [di], ah
         add [di+1], al
@@ -198,10 +217,10 @@ sub_unsign proc;из di вычитаем si
     for_sub2:
         xor ax, ax
         mov al, [di]; текущая цифра
-        add al, 10; увеличиваем на разряд на всякий случай
+        add al, base; увеличиваем на разряд на всякий случай
         dec byte ptr [di+1]; убираем след разряд
         sub al, [si]
-        mov bl, 10
+        mov bl, base
         div bl
         mov [di], ah
         add [di+1], al
@@ -252,7 +271,7 @@ mul_unsign proc
     for_norm:
         xor ax, ax
         mov al, [di]
-        mov bl, 10
+        mov bl, base
         div bl
         mov [di], ah
         add [di+1], al
@@ -283,11 +302,15 @@ start:
         mov ah, 09h
         int 21h
 
-        cmp pep_ans, '0'
-        jne six
-
-        six:;тут будет реализация суммы
-
+        mov si, offset pep_ans
+        add si, 2
+        xor ax, ax
+        mov al, [si]
+        mov base, 10
+        cmp ax, '0'
+        je tenn
+        mov base, 16
+        tenn:
         mov dx, offset operation; вопрос про операцию
         mov ah, 09h
         int 21h
@@ -325,10 +348,15 @@ start:
         mov ah, 09h
         int 21h
 
+        cmp error, 1
+        je osh
+
         mov dx, offset num2; чтение 2 строки
         xor ax, ax
         mov ah, 0Ah
         int 21h
+
+        mov error, 1
 
         mov dx, offset sign2
 	    push dx
@@ -343,6 +371,16 @@ start:
         mov dx, offset dummy; добавление перевод строки
         mov ah, 09h
         int 21h
+
+        cmp error, 1
+        je osh
+        cmp error, 1
+        jne not_err
+        osh:
+            mov dx, offset errror
+            jmp dead
+
+        not_err:
 
         call comp; заранее сравниваем
 
@@ -422,7 +460,8 @@ print_ans:
         inc dx
         mov ah, 09h
         int 21h
-		mov ah, 4ch
-		int 21h
+dead:
+        mov ah, 4ch
+        int 21h
 code ends
 end start
